@@ -1,0 +1,213 @@
+```react
+import React, { useState, useEffect } from 'react';
+import { 
+  TrendingUp, TrendingDown, AlertCircle, Info, Calculator, 
+  List, ArrowRight, Gauge, Target, ShieldAlert, Lock, 
+  BadgeCheck, Clock, Copy, CheckCircle2, Share2, Tag 
+} from 'lucide-react';
+
+const App = () => {
+  const [stockName, setStockName] = useState('');
+  const [stockCode, setStockCode] = useState('');
+  const [high, setHigh] = useState('');
+  const [low, setLow] = useState('');
+  const [close, setClose] = useState('');
+  const [results, setResults] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const calculate = () => {
+    const h = parseFloat(high);
+    const l = parseFloat(low);
+    const c = parseFloat(close);
+
+    if (isNaN(h) || isNaN(l) || isNaN(c)) return;
+
+    const isLocked = h === l;
+    const mid = (h + l) / 2;
+    const diff = h - l;
+    
+    let sp, wp, trend, isBullishMode, operationPlan;
+    const midLessThanClose = mid < c;
+
+    if (isLocked) {
+      isBullishMode = true; 
+      trend = "一字鎖定盤：極端盤態，請參考委買委賣張數";
+      sp = h;
+      wp = l;
+      operationPlan = {
+        entry: h,
+        tp: "觀察委買量",
+        sl: "前日高點",
+        mode: "一字鎖定"
+      };
+    } else {
+      const spRatio = midLessThanClose ? 1.618 : 1.382;
+      const wpRatio = midLessThanClose ? 1.382 : 1.618;
+
+      sp = l + (diff * spRatio);
+      wp = h - (diff * wpRatio);
+
+      const midUpper = mid * 1.003;
+      const midLower = mid * 0.997;
+
+      if (c > midUpper) {
+        trend = '行情偏多，隔天可能有高點可期';
+        isBullishMode = true;
+      } else if (c < midLower) {
+        trend = '行情偏弱，隔天可能會往下';
+        isBullishMode = false;
+      } else {
+        trend = '區間震盪行情 (收盤接近中間價)';
+        isBullishMode = c >= mid;
+      }
+
+      operationPlan = {
+        entry: mid,
+        tp: isBullishMode ? sp : wp,
+        sl: isBullishMode ? wp : sp,
+        mode: isBullishMode ? '做多' : '做空'
+      };
+    }
+
+    const isBetween = !isLocked && (c >= Math.min(wp, mid) && c <= Math.max(wp, mid));
+
+    setResults({ mid, sp, wp, trend, isBetween, midLessThanClose, operationPlan, isBullishMode, isLocked });
+  };
+
+  useEffect(() => {
+    if (high && low && close) {
+      calculate();
+    }
+  }, [high, low, close]);
+
+  const copyToClipboard = () => {
+    if (!results) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    const reportText = `
+【石頭少爺 隔日戰報】
+日期：${timeStr}
+個股：${stockName || '未命名'} (${stockCode || 'N/A'})
+----------------------------
+今日數據：高 ${high} / 低 ${low} / 收 ${close}
+----------------------------
+明日預判：${results.trend}
+安全進場價：${typeof results.operationPlan.entry === 'number' ? results.operationPlan.entry.toFixed(2) : results.operationPlan.entry}
+預計停利價：${typeof results.operationPlan.tp === 'number' ? results.operationPlan.tp.toFixed(2) : results.operationPlan.tp}
+預計止損價：${typeof results.operationPlan.sl === 'number' ? results.operationPlan.sl.toFixed(2) : results.operationPlan.sl}
+----------------------------
+早盤提醒 (09:05/09:10/09:15)：
+觀察前三根K棒型態，若出現弱勢組合應謹慎操作。
+*本報告僅供參考，請嚴格執行止損*
+    `.trim();
+
+    const textArea = document.createElement("textarea");
+    textArea.value = reportText;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('複製失敗', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const patterns = [
+    { title: '強勢型態', color: 'bg-red-50', border: 'border-red-100', items: [
+      { code: '+++', k: '紅、紅、紅', label: '最強勢', note: '極度看多' },
+      { code: '— + +', k: '綠、紅、紅', label: '強勢', note: '看多' },
+      { code: '++ —', k: '紅、紅、綠', label: '偏強', note: '多方占優' },
+      { code: '— — +', k: '綠、綠、紅', label: '波段多、當沖走', note: '轉折點' }
+    ]},
+    { title: '弱勢/觀望型態', color: 'bg-slate-50', border: 'border-slate-200', items: [
+      { code: '+ — —', k: '紅、綠、綠', label: '盤勢偏空', note: '多轉空' },
+      { code: '— — —', k: '綠、綠、綠', label: '盤勢偏空空', note: '極弱勢' },
+      { code: '+ — +', k: '紅、綠、紅', label: '不宜進場', note: '震盪洗盤' },
+      { code: '— + +', k: '綠、紅、紅', label: '不宜進場', note: '反彈乏力' }
+    ]}
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-slate-900">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-t-3xl p-6 shadow-sm border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                石頭少爺：隔日強弱分析工具
+              </h1>
+              <p className="text-slate-500 text-sm mt-1 font-medium">盤後數據計算 + 明日操作計畫 + 15分鐘型態判定</p>
+            </div>
+            <div className="hidden md:block">
+              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 uppercase tracking-wider">Stone Master Pro</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Input Section */}
+        <div className="bg-white p-6 shadow-sm border-b border-gray-100 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1"><Tag size={12}/> 股票名稱</span>
+              <input type="text" value={stockName} onChange={(e)=>setStockName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-200 outline-none" placeholder="例如：台積電"/>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1"><BadgeCheck size={12}/> 股票代碼</span>
+              <input type="text" value={stockCode} onChange={(e)=>setStockCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold focus:ring-2 focus:ring-blue-200 outline-none" placeholder="例如：2330"/>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-red-500">今日最高</span>
+              <input type="number" value={high} onChange={(e)=>setHigh(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-lg focus:ring-2 focus:ring-red-200 outline-none transition-all" placeholder="0.0"/>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-green-500">今日最低</span>
+              <input type="number" value={low} onChange={(e)=>setLow(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-lg focus:ring-2 focus:ring-green-200 outline-none transition-all" placeholder="0.0"/>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-slate-600">今日收盤</span>
+              <input type="number" value={close} onChange={(e)=>setClose(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-lg focus:ring-2 focus:ring-slate-200 outline-none transition-all" placeholder="0.0"/>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 pb-12">
+          {/* Left Column */}
+          <div className="lg:col-span-7 space-y-6">
+            {results ? (
+              <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                {/* 明日操作計畫 */}
+                <div className={`bg-white rounded-2xl shadow-lg border-2 ${results.isLocked ? 'border-amber-500' : 'border-blue-600'} overflow-hidden`}>
+                  <div className={`${results.isLocked ? 'bg-amber-500' : 'bg-blue-600'} text-white p-4 flex items-center justify-between font-black uppercase tracking-tight`}>
+                    <div className="flex items-center gap-2">
+                      {results.isLocked ? <Lock size={20} /> : <Target size={20} />}
+                      <span>明日操作計畫 ({results.operationPlan.mode})</span>
+                    </div>
+                    <button 
+                      onClick={copyToClipboard}
+                      className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs"
+                    >
+                      {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                      {copied ? '已複製' : '複製戰報'}
+                    </button>
+                  </div>
+                  <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                      <span className="text-xs font-bold text-blue-400 mb-1 block">安全進場價</span>
+                      <span className="text-2xl font-black text-blue-700">{typeof results.operationPlan.entry === 'number' ? results.operationPlan.entry.toFixed(2) : results.operationPlan.entry}</span>
+                    </div>
+                    <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                      <span className="text-xs font-bold text-red-400 mb-1 block">預計停利價</span>
+                      <span className="text-2xl font-black text-red-700">{typeof results.operationPlan.tp === 'number' ? results.operationPlan.tp.toFixed(2) : results.operationPlan.tp}</span>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+                      <span className="text-xs font-bold text-green-400 mb-1 block">預計止損價</span>
+                      <span className="text-
