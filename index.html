@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -12,6 +13,11 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
         .pattern-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8 text-slate-900">
@@ -28,17 +34,17 @@
                 </div>
             </div>
             <div class="hidden md:block bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-xs font-bold border border-blue-100 uppercase tracking-wider">
-                <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> 盤後分析系統
+                <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> 盤後綜合分析系統
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-12">
             <!-- 左側區域：輸入與結果 -->
             <div class="lg:col-span-8 space-y-6">
-                <!-- 輸入區 -->
+                <!-- 1. 價格輸入區 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                     <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-calculator"></i> 輸入今日數據
+                        <i class="fa-solid fa-calculator"></i> 關鍵價位計算
                     </h2>
                     
                     <div class="grid grid-cols-2 gap-4 mb-4">
@@ -75,7 +81,7 @@
                 </div>
 
                 <!-- 結果區 (預設隱藏) -->
-                <div id="resultPanel" class="hidden space-y-6">
+                <div id="resultPanel" class="hidden space-y-6 fade-in">
                     <!-- 明日操作計畫 -->
                     <div id="actionCard" class="bg-white rounded-3xl shadow-lg border-2 overflow-hidden transition-all">
                         <div id="actionHeader" class="text-white p-4 flex items-center justify-between font-black uppercase tracking-tight">
@@ -139,6 +145,81 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 2. 封單成交比計算機 (整合區塊) -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+                    <div class="bg-slate-800 text-white p-4 flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-amber-400"></i>
+                        <span class="font-bold text-sm">漲停板專用：封單成交比計算機</span>
+                    </div>
+                    
+                    <div class="p-6 border-b border-slate-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="sealStockName" class="block text-xs font-bold text-slate-600 mb-1 flex items-center gap-1"><i class="fa-solid fa-tag"></i> 股票名稱</label>
+                                <input type="text" id="sealStockName" placeholder="例如：台積電" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-200 outline-none transition font-bold">
+                            </div>
+                            <div>
+                                <label for="sealStockCode" class="block text-xs font-bold text-slate-600 mb-1 flex items-center gap-1"><i class="fa-solid fa-hashtag"></i> 股票代碼</label>
+                                <input type="text" id="sealStockCode" placeholder="例如：2330" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-200 outline-none transition font-mono font-bold">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="sealVolume" class="block text-xs font-bold text-slate-600 mb-1">漲停板買一封單量</label>
+                                <input type="number" id="sealVolume" placeholder="例如：5000" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-200 outline-none transition font-mono" min="0">
+                            </div>
+                            <div>
+                                <label for="totalVolume" class="block text-xs font-bold text-slate-600 mb-1">當日總成交量</label>
+                                <input type="number" id="totalVolume" placeholder="例如：2000" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-200 outline-none transition font-mono" min="0">
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mb-4 font-medium"><i class="fa-solid fa-circle-info"></i> ※ 兩者的單位必須保持一致（同為張或同為手）</p>
+
+                        <!-- 錯誤訊息 -->
+                        <div id="ratioErrorMsg" class="hidden mb-4 p-3 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 請輸入大於零的有效數字！
+                        </div>
+
+                        <button onclick="calculateRatio()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-md text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> 計算隔日動能
+                        </button>
+                    </div>
+
+                    <!-- 封單比結果顯示區塊 -->
+                    <div id="ratioResultSection" class="hidden p-6 bg-slate-50 fade-in border-t border-slate-200">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest"><i class="fa-solid fa-chart-pie"></i> 分析結果</span>
+                            <button onclick="copyRatioReport()" class="bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-slate-600 shadow-sm">
+                                <i id="sealCopyIcon" class="fa-solid fa-copy"></i>
+                                <span id="sealCopyText">複製單獨戰報</span>
+                            </button>
+                        </div>
+                        <div class="flex flex-col md:flex-row items-center gap-6">
+                            <div class="text-center w-full md:w-1/3">
+                                <p class="text-xs text-slate-500 font-bold mb-1 uppercase tracking-widest">封單成交比</p>
+                                <div id="ratioValue" class="text-4xl font-black text-slate-800">--</div>
+                            </div>
+                            <div id="ratioResultCard" class="w-full md:w-2/3 p-4 rounded-xl border-2 bg-white">
+                                <h3 id="ratioLevelText" class="text-lg font-black mb-1">【狀態】</h3>
+                                <p id="ratioStrategyText" class="text-sm font-bold opacity-90"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 判斷標準參考 -->
+                    <div class="bg-slate-50 p-5 text-[11px] text-slate-600 border-t border-slate-100">
+                        <p class="font-black mb-2 text-slate-700 uppercase tracking-widest"><i class="fa-solid fa-bookmark text-blue-500"></i> 封單比判斷標準：</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 font-medium">
+                            <div class="flex items-center gap-2"><span class="w-10 text-right text-red-600 font-black">> 10</span> 極強勢：大概率連板</div>
+                            <div class="flex items-center gap-2"><span class="w-10 text-right text-red-500 font-black">3 ~ 10</span> 強勢：衝高 5% 以上</div>
+                            <div class="flex items-center gap-2"><span class="w-10 text-right text-yellow-600 font-black">1 ~ 3</span> 動能轉弱：衝高 3-5%</div>
+                            <div class="flex items-center gap-2"><span class="w-10 text-right text-green-500 font-black">0.5 ~ 1</span> 謹慎看待：高開易回落</div>
+                            <div class="flex items-center gap-2"><span class="w-10 text-right text-green-600 font-black">< 0.5</span> 極弱勢：平開或低開</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 右側區域：型態參考 -->
@@ -157,11 +238,11 @@
                             <span>09:15</span>
                         </div>
                         <!-- 新增 5分K 判斷基準說明 -->
-                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 mt-1">
+                        <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mt-1">
                             <p class="text-[10px] font-bold text-blue-800 mb-1.5 flex items-center gap-1">
                                 <i class="fa-solid fa-magnifying-glass-chart"></i> 5分K 比較基準 (價格較高為 🟥，反之 🟩)
                             </p>
-                            <ul class="text-[10px] text-blue-700/90 space-y-1.5 ml-1 tracking-wide">
+                            <ul class="text-[10px] text-blue-700/90 space-y-1.5 ml-1 tracking-wide font-medium">
                                 <li>• <strong class="text-blue-800">09:05</strong>：比較昨日 <strong class="text-blue-800">13:30</strong> 收盤價</li>
                                 <li>• <strong class="text-blue-800">09:10</strong>：比較今日 <strong class="text-blue-800">09:05</strong> 當下價格</li>
                                 <li>• <strong class="text-blue-800">09:15</strong>：比較今日 <strong class="text-blue-800">09:10</strong> 當下價格</li>
@@ -173,7 +254,7 @@
                         <div class="rounded-xl border border-red-100 bg-red-50 p-4">
                             <h3 class="text-[10px] font-black text-red-500 uppercase mb-3 tracking-widest">強勢型態</h3>
                             <div class="space-y-2">
-                                <div class="flex justify-between items-center group pattern-card p-2 rounded-lg bg-white/50 border border-red-100">
+                                <div class="flex justify-between items-center group pattern-card p-2 rounded-lg bg-white/50 border border-red-100 shadow-sm">
                                     <span class="text-lg tracking-[0.2em]">🟥🟥🟥</span>
                                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 shadow-sm">最強勢</span>
                                 </div>
@@ -235,7 +316,9 @@
     <!-- 腳本邏輯 -->
     <script>
         let currentData = null;
+        let ratioData = null; // 儲存封單比資料
 
+        // 1. 價格計算邏輯
         function calculate() {
             const h = parseFloat(document.getElementById('high').value);
             const l = parseFloat(document.getElementById('low').value);
@@ -259,7 +342,7 @@
 
             if (isLocked) {
                 isBullishMode = true;
-                trend = "一字鎖定盤：極端盤態，請改看委買委賣張數";
+                trend = "一字鎖定盤：極端盤態，請參考下方封單成交比。";
                 sp = h; wp = l;
                 opMode = "一字鎖定"; opEntry = h; opTP = "看委買量"; opSL = "前日高點";
             } else {
@@ -306,7 +389,7 @@
                 actionCard.className = "bg-white rounded-3xl shadow-lg border-2 border-amber-500 overflow-hidden transition-all";
                 actionHeader.className = "bg-amber-500 text-white p-4 flex items-center justify-between font-black uppercase tracking-tight";
                 actionIcon.className = "fa-solid fa-lock";
-                adviceText.innerText = "一字鎖定時公式失效，請改參考漲跌停委買賣未成交張數。";
+                adviceText.innerText = "一字鎖定時公式失效，請利用下方「封單成交比」來預測明日開盤動能。";
                 detailCard.classList.add('hidden');
             } else {
                 detailCard.classList.remove('hidden');
@@ -327,10 +410,70 @@
                 }
             }
 
-            // 儲存目前資料供複製使用
             currentData = { h, l, c, trend, opMode, opEntry, opTP, opSL };
         }
 
+        // 2. 封單成交比計算邏輯
+        function calculateRatio() {
+            const sealInput = document.getElementById('sealVolume').value;
+            const totalInput = document.getElementById('totalVolume').value;
+            const errorMsg = document.getElementById('ratioErrorMsg');
+            const resultSection = document.getElementById('ratioResultSection');
+            
+            const seal = parseFloat(sealInput);
+            const total = parseFloat(totalInput);
+
+            if (isNaN(seal) || isNaN(total) || seal < 0 || total <= 0) {
+                errorMsg.classList.remove('hidden');
+                resultSection.classList.add('hidden');
+                ratioData = null;
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+
+            const ratio = (seal / total);
+            const ratioFormatted = ratio.toFixed(2);
+
+            const ratioValueDom = document.getElementById('ratioValue');
+            const resultCardDom = document.getElementById('ratioResultCard');
+            const levelTextDom = document.getElementById('ratioLevelText');
+            const strategyTextDom = document.getElementById('ratioStrategyText');
+
+            ratioValueDom.innerText = ratioFormatted;
+            resultCardDom.className = 'w-full md:w-2/3 p-4 rounded-xl border-2 transition-colors duration-300 ';
+            
+            let level, strategy;
+            if (ratio > 10) {
+                level = "【極強勢】大概率連板";
+                strategy = "策略：堅定持倉，等待主力進一步拉升。";
+                resultCardDom.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+            } else if (ratio >= 3) {
+                level = "【強勢】衝高 5% 以上";
+                strategy = "策略：高位可先賣，等回落至支撐位時再接回。";
+                resultCardDom.classList.add('border-red-400', 'bg-red-50', 'text-red-600');
+            } else if (ratio >= 1) {
+                level = "【動能轉弱】開盤衝高 3~5%";
+                strategy = "策略：若市場情緒平淡，建議及時離場。";
+                resultCardDom.classList.add('border-yellow-400', 'bg-yellow-50', 'text-yellow-700');
+            } else if (ratio >= 0.5) {
+                level = "【謹慎看待】高開極易回落";
+                strategy = "策略：若開盤衝高，應果斷離場。";
+                resultCardDom.classList.add('border-green-400', 'bg-green-50', 'text-green-600');
+            } else {
+                level = "【極弱勢】平開或低開";
+                strategy = "策略：應果斷賣出，切勿抱有幻想。";
+                resultCardDom.classList.add('border-green-500', 'bg-green-50', 'text-green-700');
+            }
+
+            levelTextDom.innerText = level;
+            strategyTextDom.innerText = strategy;
+            resultSection.classList.remove('hidden');
+
+            ratioData = { ratio: ratioFormatted, level, strategy };
+        }
+
+        // 3. 複製主戰報邏輯
         function copyReport() {
             if (!currentData) return;
             
@@ -343,7 +486,14 @@
             const tp = typeof currentData.opTP === 'number' ? currentData.opTP.toFixed(2) : currentData.opTP;
             const sl = typeof currentData.opSL === 'number' ? currentData.opSL.toFixed(2) : currentData.opSL;
 
-            const text = `【石頭少爺 隔日戰報】\n日期：${timeStr}\n個股：${name} (${code})\n----------------------------\n今日數據：高 ${currentData.h} / 低 ${currentData.l} / 收 ${currentData.c}\n----------------------------\n明日預判：${currentData.trend}\n操作方向：【${currentData.opMode}】\n安全進場價：${en}\n預計停利價：${tp}\n預計止損價：${sl}\n----------------------------\n早盤提醒 (09:05/09:10/09:15)：\n觀察前三根K棒型態，若出現弱勢組合應謹慎操作。\n*本報告僅供參考，請嚴格執行止損*`;
+            let text = `【石頭少爺 隔日戰報】\n日期：${timeStr}\n個股：${name} (${code})\n----------------------------\n今日數據：高 ${currentData.h} / 低 ${currentData.l} / 收 ${currentData.c}\n----------------------------\n明日預判：${currentData.trend}\n操作方向：【${currentData.opMode}】\n安全進場價：${en}\n預計停利價：${tp}\n預計止損價：${sl}\n`;
+
+            // 如果有計算封單比，一併附在戰報上
+            if (ratioData) {
+                text += `----------------------------\n明日漲停板機率分析：封單成交比 ${ratioData.ratio}%\n走勢預估：${ratioData.level}\n${ratioData.strategy}\n`;
+            }
+
+            text += `----------------------------\n早盤提醒 (09:05/09:10/09:15)：\n觀察前三根 5分K 組合，若出現弱勢應謹慎操作。\n*本報告僅供參考，請嚴格執行止損*`;
 
             const textarea = document.createElement("textarea");
             textarea.value = text;
@@ -367,8 +517,46 @@
             
             document.body.removeChild(textarea);
         }
+
+        // 4. 複製單獨封單成交比戰報邏輯
+        function copyRatioReport() {
+            if (!ratioData) return;
+
+            const name = document.getElementById('sealStockName').value || '未命名';
+            const code = document.getElementById('sealStockCode').value || 'N/A';
+            const sealInput = document.getElementById('sealVolume').value;
+            const totalInput = document.getElementById('totalVolume').value;
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            let text = `【石頭少爺 封單比分析戰報】\n日期：${timeStr}\n個股：${name} (${code})\n----------------------------\n當日收盤數據：封單量 ${sealInput} / 總成交 ${totalInput}\n----------------------------\n明日漲停板機率分析：封單成交比 ${ratioData.ratio}%\n走勢預估：${ratioData.level}\n${ratioData.strategy}\n----------------------------\n📌 明日漲停機率（封單比）判斷標準：\n> 10\n極強勢：大概率連板\n3 ~ 10\n強勢：衝高 5% 以上\n1 ~ 3\n動能轉弱：衝高 3-5%\n0.5 ~ 1\n謹慎看待：高開易回落\n< 0.5\n極弱勢：平開或低開`;
+
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                document.execCommand('copy');
+                const btnText = document.getElementById('sealCopyText');
+                const btnIcon = document.getElementById('sealCopyIcon');
+                btnText.innerText = "已複製！";
+                btnIcon.className = "fa-solid fa-check text-green-500";
+
+                setTimeout(() => {
+                    btnText.innerText = "複製單獨戰報";
+                    btnIcon.className = "fa-solid fa-copy";
+                }, 2000);
+            } catch (err) {
+                alert('複製失敗，請手動選取複製');
+            }
+
+            document.body.removeChild(textarea);
+        }
     </script>
 </body>
 </html>
 
 
+
+```
