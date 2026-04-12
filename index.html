@@ -1,325 +1,339 @@
-```react
-import React, { useState, useEffect } from 'react';
-import { 
-  TrendingUp, TrendingDown, AlertCircle, Info, Calculator, 
-  List, ArrowRight, Gauge, Target, ShieldAlert, Lock, 
-  BadgeCheck, Clock, Copy, CheckCircle2, Share2, Tag 
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>石頭少爺：隔日強弱分析工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .red-glow { box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
+        .blue-glow { box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+        .pattern-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div id="app" class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <header class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-slate-800 text-white p-3 rounded-2xl">
+                    <i class="fa-solid fa-gem text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">石頭少爺：隔日強弱分析工具</h1>
+                    <p class="text-slate-500 text-sm font-medium">Stone Master Stock Analyzer Pro</p>
+                </div>
+            </div>
+            <div id="currentTime" class="text-slate-400 text-xs font-bold border-l-0 md:border-l pl-0 md:pl-4">
+                <i class="fa-regular fa-calendar-check mr-1"></i> 盤後分析系統
+            </div>
+        </header>
 
-const App = () => {
-  const [stockName, setStockName] = useState('');
-  const [stockCode, setStockCode] = useState('');
-  const [high, setHigh] = useState('');
-  const [low, setLow] = useState('');
-  const [close, setClose] = useState('');
-  const [results, setResults] = useState(null);
-  const [copied, setCopied] = useState(false);
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Panel: Input & Result -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Data Input -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square"></i> 輸入今日參數
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">股票名稱</label>
+                            <input type="text" id="stockName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-200 outline-none" placeholder="名稱">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">代碼</label>
+                            <input type="text" id="stockCode" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold focus:ring-2 focus:ring-blue-200 outline-none" placeholder="代碼">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-red-500 mb-1">今日最高</label>
+                            <input type="number" id="high" step="any" oninput="calculate()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-red-600 focus:ring-2 focus:ring-red-100 outline-none" placeholder="0.0">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-green-500 mb-1">今日最低</label>
+                            <input type="number" id="low" step="any" oninput="calculate()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-green-600 focus:ring-2 focus:ring-green-100 outline-none" placeholder="0.0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">今日收盤</label>
+                        <input type="number" id="close" step="any" oninput="calculate()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-slate-100 outline-none" placeholder="請輸入收盤價以觸發計算">
+                    </div>
+                </div>
 
-  const calculate = () => {
-    const h = parseFloat(high);
-    const l = parseFloat(low);
-    const c = parseFloat(close);
+                <!-- Main Action Plan -->
+                <div id="resultPanel" class="hidden animate-in fade-in duration-500 space-y-6">
+                    <div id="actionCard" class="bg-white rounded-3xl shadow-xl border-2 border-blue-600 overflow-hidden">
+                        <div class="bg-blue-600 text-white p-4 flex items-center justify-between font-black uppercase tracking-tight">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-bullseye"></i>
+                                <span id="opTitle">明日操作計畫</span>
+                            </div>
+                            <button onclick="copyReport()" class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-xl transition-all flex items-center gap-2 text-xs">
+                                <i id="copyIcon" class="fa-solid fa-copy"></i>
+                                <span id="copyText">複製戰報</span>
+                            </button>
+                        </div>
+                        <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                            <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                                <span class="text-xs font-bold text-blue-400 mb-1 block">安全進場價 (Mid)</span>
+                                <span id="resEntry" class="text-3xl font-black text-blue-700">--</span>
+                            </div>
+                            <div class="p-4 bg-red-50 rounded-2xl border border-red-100">
+                                <span class="text-xs font-bold text-red-400 mb-1 block">預計停利價</span>
+                                <span id="resTP" class="text-3xl font-black text-red-700">--</span>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-2xl border border-green-100">
+                                <span class="text-xs font-bold text-green-400 mb-1 block">預計止損價</span>
+                                <span id="resSL" class="text-3xl font-black text-green-700">--</span>
+                            </div>
+                        </div>
+                        <div class="px-6 pb-6 pt-2">
+                            <div id="trendAlert" class="flex items-center gap-3 p-4 rounded-xl font-bold"></div>
+                        </div>
+                    </div>
 
-    if (isNaN(h) || isNaN(l) || isNaN(c)) return;
+                    <!-- Price Details -->
+                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">精確價位參考 (公式計算)</h3>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400">強勢價 (SP)</p>
+                                <p id="calcSP" class="text-xl font-black text-red-500">--</p>
+                            </div>
+                            <div class="border-x border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-400">中間價 (Mid)</p>
+                                <p id="calcMid" class="text-xl font-black text-blue-500">--</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400">弱勢價 (WP)</p>
+                                <p id="calcWP" class="text-xl font-black text-green-500">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    const isLocked = h === l;
-    const mid = (h + l) / 2;
-    const diff = h - l;
-    
-    let sp, wp, trend, isBullishMode, operationPlan;
-    const midLessThanClose = mid < c;
+                <!-- Empty State -->
+                <div id="emptyState" class="bg-white rounded-3xl p-20 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200">
+                    <i class="fa-solid fa-calculator text-5xl mb-4 opacity-50"></i>
+                    <p class="font-bold uppercase tracking-widest text-sm">請輸入數值產出明日戰報</p>
+                </div>
+            </div>
 
-    if (isLocked) {
-      isBullishMode = true; 
-      trend = "一字鎖定盤：極端盤態，請參考委買委賣張數";
-      sp = h;
-      wp = l;
-      operationPlan = {
-        entry: h,
-        tp: "觀察委買量",
-        sl: "前日高點",
-        mode: "一字鎖定"
-      };
-    } else {
-      const spRatio = midLessThanClose ? 1.618 : 1.382;
-      const wpRatio = midLessThanClose ? 1.382 : 1.618;
+            <!-- Right Panel: Pattern Reference -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-5 bg-slate-50 border-b border-slate-100 flex flex-col gap-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-slate-600"></i>
+                            <span class="font-black text-slate-700">早盤 15 分鐘判定</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-blue-600 text-white px-3 py-2 rounded-xl text-[10px] font-bold">
+                            <span><i class="fa-regular fa-clock mr-1"></i> 09:05</span>
+                            <span><i class="fa-solid fa-arrow-right"></i></span>
+                            <span>09:10</span>
+                            <span><i class="fa-solid fa-arrow-right"></i></span>
+                            <span>09:15</span>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-6">
+                        <!-- Strong Patterns -->
+                        <div>
+                            <h3 class="text-[10px] font-black text-red-500 uppercase mb-3 tracking-widest flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> 強勢型態
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between text-xs pattern-card border border-red-50 p-2 rounded-lg bg-red-50/30">
+                                    <span class="font-mono font-black text-lg text-slate-800">+++</span>
+                                    <span class="font-bold text-red-600">最強勢 (紅紅紅)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-50">
+                                    <span class="font-mono font-black text-lg text-slate-800">— + +</span>
+                                    <span class="font-bold text-slate-600">強勢 (綠紅紅)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-50">
+                                    <span class="font-mono font-black text-lg text-slate-800">++ —</span>
+                                    <span class="font-bold text-slate-600">偏強 (紅紅綠)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-50">
+                                    <span class="font-mono font-black text-lg text-slate-800">— — +</span>
+                                    <span class="font-bold text-slate-600">波段多/當沖閃</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Weak Patterns -->
+                        <div>
+                            <h3 class="text-[10px] font-black text-green-600 uppercase mb-3 tracking-widest flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> 弱勢/觀望型態
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-50">
+                                    <span class="font-mono font-black text-lg text-slate-800">+ — —</span>
+                                    <span class="font-bold text-slate-600">盤勢偏空 (紅綠綠)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-50">
+                                    <span class="font-mono font-black text-lg text-slate-800">— — —</span>
+                                    <span class="font-bold text-slate-600">盤勢偏空空 (綠綠綠)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-100 bg-slate-50/50 rounded-lg">
+                                    <span class="font-mono font-black text-lg text-slate-400">+ — +</span>
+                                    <span class="font-bold text-slate-400 italic">不宜進場 (震盪)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 border border-slate-100 bg-slate-50/50 rounded-lg">
+                                    <span class="font-mono font-black text-lg text-slate-400">— + +</span>
+                                    <span class="font-bold text-slate-400 italic">不宜進場 (震盪)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-      sp = l + (diff * spRatio);
-      wp = h - (diff * wpRatio);
+                <!-- Footer Box -->
+                <div class="bg-slate-800 rounded-3xl p-6 text-white shadow-xl">
+                    <h3 class="font-bold flex items-center gap-2 mb-3 text-sm text-blue-400">
+                        <i class="fa-solid fa-shield-halved"></i> 石頭少爺：風險控管提醒
+                    </h3>
+                    <ul class="text-[11px] space-y-3 opacity-80 leading-relaxed font-medium list-disc pl-4">
+                        <li>安全進場點建議設於「中間價」，避免在趨勢不明時盲目追價。</li>
+                        <li>觀察 09:15 確定前三根 K 棒組合後再決定是否進場。</li>
+                        <li>收盤價與中間價差距 0.3% 以內視為區間震盪，建議觀望。</li>
+                        <li>嚴格執行止損，是保住獲利的唯一途徑。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
-      const midUpper = mid * 1.003;
-      const midLower = mid * 0.997;
+    <script>
+        let currentResults = null;
 
-      if (c > midUpper) {
-        trend = '行情偏多，隔天可能有高點可期';
-        isBullishMode = true;
-      } else if (c < midLower) {
-        trend = '行情偏弱，隔天可能會往下';
-        isBullishMode = false;
-      } else {
-        trend = '區間震盪行情 (收盤接近中間價)';
-        isBullishMode = c >= mid;
-      }
+        function calculate() {
+            const h = parseFloat(document.getElementById('high').value);
+            const l = parseFloat(document.getElementById('low').value);
+            const c = parseFloat(document.getElementById('close').value);
 
-      operationPlan = {
-        entry: mid,
-        tp: isBullishMode ? sp : wp,
-        sl: isBullishMode ? wp : sp,
-        mode: isBullishMode ? '做多' : '做空'
-      };
-    }
+            if (isNaN(h) || isNaN(l) || isNaN(c)) {
+                document.getElementById('resultPanel').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
 
-    const isBetween = !isLocked && (c >= Math.min(wp, mid) && c <= Math.max(wp, mid));
+            document.getElementById('resultPanel').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
 
-    setResults({ mid, sp, wp, trend, isBetween, midLessThanClose, operationPlan, isBullishMode, isLocked });
-  };
+            const isLocked = h === l;
+            const mid = (h + l) / 2;
+            const diff = h - l;
+            const midLessThanClose = mid < c;
 
-  useEffect(() => {
-    if (high && low && close) {
-      calculate();
-    }
-  }, [high, low, close]);
+            let sp, wp, trend, isBullishMode, opPlan;
 
-  const copyToClipboard = () => {
-    if (!results) return;
+            if (isLocked) {
+                isBullishMode = true;
+                trend = "一字鎖定盤：極端盤態，請參考委買委賣張數。";
+                sp = h;
+                wp = l;
+                opPlan = { entry: h, tp: "觀察委買量", sl: "前日高點", mode: "一字鎖定" };
+            } else {
+                const spRatio = midLessThanClose ? 1.618 : 1.382;
+                const wpRatio = midLessThanClose ? 1.382 : 1.618;
 
-    const now = new Date();
-    const timeStr = `${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
-    const reportText = `
+                sp = l + (diff * spRatio);
+                wp = h - (diff * wpRatio);
+
+                const midUpper = mid * 1.003;
+                const midLower = mid * 0.997;
+
+                if (c > midUpper) {
+                    trend = "行情偏多，隔天可能有高點可期。";
+                    isBullishMode = true;
+                } else if (c < midLower) {
+                    trend = "行情偏弱，隔天可能會往下走。";
+                    isBullishMode = false;
+                } else {
+                    trend = "區間震盪行情 (收盤接近中間價)。";
+                    isBullishMode = c >= mid;
+                }
+
+                opPlan = {
+                    entry: mid,
+                    tp: isBullishMode ? sp : wp,
+                    sl: isBullishMode ? wp : sp,
+                    mode: isBullishMode ? '做多' : '做空'
+                };
+            }
+
+            // 更新 UI
+            document.getElementById('resEntry').innerText = typeof opPlan.entry === 'number' ? opPlan.entry.toFixed(2) : opPlan.entry;
+            document.getElementById('resTP').innerText = typeof opPlan.tp === 'number' ? opPlan.tp.toFixed(2) : opPlan.tp;
+            document.getElementById('resSL').innerText = typeof opPlan.sl === 'number' ? opPlan.sl.toFixed(2) : opPlan.sl;
+            document.getElementById('opTitle').innerText = `明日操作計畫 (${opPlan.mode})`;
+            
+            document.getElementById('calcSP').innerText = sp.toFixed(2);
+            document.getElementById('calcMid').innerText = mid.toFixed(2);
+            document.getElementById('calcWP').innerText = wp.toFixed(2);
+
+            const alertBox = document.getElementById('trendAlert');
+            alertBox.innerHTML = `<i class="fa-solid ${isBullishMode ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> 預判：${trend}`;
+            alertBox.className = `flex items-center gap-3 p-4 rounded-xl font-bold ${isBullishMode ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`;
+
+            const card = document.getElementById('actionCard');
+            card.className = `bg-white rounded-3xl shadow-xl border-2 overflow-hidden ${isLocked ? 'border-amber-500' : (isBullishMode ? 'border-red-500' : 'border-green-600')}`;
+            card.querySelector('.bg-blue-600').className = `p-4 flex items-center justify-between text-white font-black uppercase tracking-tight ${isLocked ? 'bg-amber-500' : (isBullishMode ? 'bg-red-500' : 'bg-green-600')}`;
+
+            currentResults = { 
+                trend, opPlan, high: h, low: l, close: c, 
+                isBullishMode, isLocked, sp, mid, wp 
+            };
+        }
+
+        function copyReport() {
+            if (!currentResults) return;
+
+            const name = document.getElementById('stockName').value || '未命名個股';
+            const code = document.getElementById('stockCode').value || 'N/A';
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const reportText = `
 【石頭少爺 隔日戰報】
 日期：${timeStr}
-個股：${stockName || '未命名'} (${stockCode || 'N/A'})
+個股：${name} (${code})
 ----------------------------
-今日數據：高 ${high} / 低 ${low} / 收 ${close}
+今日數據：高 ${currentResults.high} / 低 ${currentResults.low} / 收 ${currentResults.close}
 ----------------------------
-明日預判：${results.trend}
-安全進場價：${typeof results.operationPlan.entry === 'number' ? results.operationPlan.entry.toFixed(2) : results.operationPlan.entry}
-預計停利價：${typeof results.operationPlan.tp === 'number' ? results.operationPlan.tp.toFixed(2) : results.operationPlan.tp}
-預計止損價：${typeof results.operationPlan.sl === 'number' ? results.operationPlan.sl.toFixed(2) : results.operationPlan.sl}
+明日預判：${currentResults.trend}
+安全進場：${typeof currentResults.opPlan.entry === 'number' ? currentResults.opPlan.entry.toFixed(2) : currentResults.opPlan.entry}
+預計停利：${typeof currentResults.opPlan.tp === 'number' ? currentResults.opPlan.tp.toFixed(2) : currentResults.opPlan.tp}
+預計止損：${typeof currentResults.opPlan.sl === 'number' ? currentResults.opPlan.sl.toFixed(2) : currentResults.opPlan.sl}
 ----------------------------
 早盤提醒 (09:05/09:10/09:15)：
 觀察前三根K棒型態，若出現弱勢組合應謹慎操作。
-*本報告僅供參考，請嚴格執行止損*
-    `.trim();
+*報告僅供參考，請嚴格執行止損*
+            `.trim();
 
-    const textArea = document.createElement("textarea");
-    textArea.value = reportText;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('複製失敗', err);
-    }
-    document.body.removeChild(textArea);
-  };
+            const textArea = document.createElement("textarea");
+            textArea.value = reportText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
 
-  const patterns = [
-    { title: '強勢型態', color: 'bg-red-50', border: 'border-red-100', items: [
-      { code: '+++', k: '紅、紅、紅', label: '最強勢', note: '極度看多' },
-      { code: '— + +', k: '綠、紅、紅', label: '強勢', note: '看多' },
-      { code: '++ —', k: '紅、紅、綠', label: '偏強', note: '多方占優' },
-      { code: '— — +', k: '綠、綠、紅', label: '波段多、當沖走', note: '轉折點' }
-    ]},
-    { title: '弱勢/觀望型態', color: 'bg-slate-50', border: 'border-slate-200', items: [
-      { code: '+ — —', k: '紅、綠、綠', label: '盤勢偏空', note: '多轉空' },
-      { code: '— — —', k: '綠、綠、綠', label: '盤勢偏空空', note: '極弱勢' },
-      { code: '+ — +', k: '紅、綠、紅', label: '不宜進場', note: '震盪洗盤' },
-      { code: '— + +', k: '綠、紅、紅', label: '不宜進場', note: '反彈乏力' }
-    ]}
-  ];
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-slate-900">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-t-3xl p-6 shadow-sm border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                石頭少爺：隔日強弱分析工具
-              </h1>
-              <p className="text-slate-500 text-sm mt-1 font-medium">盤後數據計算 + 明日操作計畫 + 15分鐘型態判定</p>
-            </div>
-            <div className="hidden md:block">
-              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 uppercase tracking-wider">Stone Master Pro</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Input Section */}
-        <div className="bg-white p-6 shadow-sm border-b border-gray-100 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1"><Tag size={12}/> 股票名稱</span>
-              <input type="text" value={stockName} onChange={(e)=>setStockName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-200 outline-none" placeholder="例如：台積電"/>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1"><BadgeCheck size={12}/> 股票代碼</span>
-              <input type="text" value={stockCode} onChange={(e)=>setStockCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold focus:ring-2 focus:ring-blue-200 outline-none" placeholder="例如：2330"/>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-red-500">今日最高</span>
-              <input type="number" value={high} onChange={(e)=>setHigh(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-lg focus:ring-2 focus:ring-red-200 outline-none transition-all" placeholder="0.0"/>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-green-500">今日最低</span>
-              <input type="number" value={low} onChange={(e)=>setLow(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-lg focus:ring-2 focus:ring-green-200 outline-none transition-all" placeholder="0.0"/>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-slate-600">今日收盤</span>
-              <input type="number" value={close} onChange={(e)=>setClose(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono font-bold text-lg focus:ring-2 focus:ring-slate-200 outline-none transition-all" placeholder="0.0"/>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 pb-12">
-          {/* Left Column */}
-          <div className="lg:col-span-7 space-y-6">
-            {results ? (
-              <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-                {/* 明日操作計畫 */}
-                <div className={`bg-white rounded-2xl shadow-lg border-2 ${results.isLocked ? 'border-amber-500' : 'border-blue-600'} overflow-hidden`}>
-                  <div className={`${results.isLocked ? 'bg-amber-500' : 'bg-blue-600'} text-white p-4 flex items-center justify-between font-black uppercase tracking-tight`}>
-                    <div className="flex items-center gap-2">
-                      {results.isLocked ? <Lock size={20} /> : <Target size={20} />}
-                      <span>明日操作計畫 ({results.operationPlan.mode})</span>
-                    </div>
-                    <button 
-                      onClick={copyToClipboard}
-                      className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs"
-                    >
-                      {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-                      {copied ? '已複製' : '複製戰報'}
-                    </button>
-                  </div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                      <span className="text-xs font-bold text-blue-400 mb-1 block">安全進場價</span>
-                      <span className="text-2xl font-black text-blue-700">{typeof results.operationPlan.entry === 'number' ? results.operationPlan.entry.toFixed(2) : results.operationPlan.entry}</span>
-                    </div>
-                    <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                      <span className="text-xs font-bold text-red-400 mb-1 block">預計停利價</span>
-                      <span className="text-2xl font-black text-red-700">{typeof results.operationPlan.tp === 'number' ? results.operationPlan.tp.toFixed(2) : results.operationPlan.tp}</span>
-                    </div>
-                    <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                      <span className="text-xs font-bold text-green-400 mb-1 block">預計止損價</span>
-                      <span className="text-2xl font-black text-green-700">{typeof results.operationPlan.sl === 'number' ? results.operationPlan.sl.toFixed(2) : results.operationPlan.sl}</span>
-                    </div>
-                  </div>
-                  <div className="px-6 pb-4 flex items-center gap-2 text-xs font-bold text-slate-400 italic border-t border-slate-50 pt-3">
-                    <BadgeCheck size={14} className="text-blue-400" />
-                    {results.isLocked ? "一字鎖定時公式失效，請改參考漲跌停委買賣未成交張數。" : `石頭少爺提醒：${results.isBullishMode ? '多單停利看強勢價，停損看弱勢價' : '空單停利看弱勢價，停損看強勢價'}。`}
-                  </div>
-                </div>
-
-                {/* 參考價位分析 */}
-                {!results.isLocked && (
-                  <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-100">
-                    <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Gauge size={20} className="text-blue-400" />
-                        <span className="font-bold">今日關鍵價位分析</span>
-                      </div>
-                      <div className="text-[10px] bg-slate-700 px-2 py-1 rounded border border-slate-600 font-mono">
-                        {stockCode} {stockName}
-                      </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-                        <div>
-                          <div className="text-xs font-bold text-slate-400 mb-1">強勢價 (SP)</div>
-                          <div className="text-xl font-black text-red-600">{results.sp.toFixed(2)}</div>
-                        </div>
-                        <div className="border-x border-slate-100">
-                          <div className="text-xs font-bold text-slate-400 mb-1">中間價 (Mid)</div>
-                          <div className="text-xl font-black text-blue-600">{results.mid.toFixed(2)}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-400 mb-1">弱勢價 (WP)</div>
-                          <div className="text-xl font-black text-green-600">{results.wp.toFixed(2)}</div>
-                        </div>
-                      </div>
-
-                      <div className={`p-4 rounded-xl flex items-center gap-3 border ${results.isBullishMode ? 'bg-red-50 border-red-100 text-red-600' : 'bg-green-50 border-green-100 text-green-600'}`}>
-                        {results.isBullishMode ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-                        <span className="font-bold">隔日趨勢預判：{results.trend}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl p-20 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200">
-                <Calculator size={48} className="mb-4 opacity-50" />
-                <p className="font-bold uppercase tracking-widest text-sm">請輸入數值開始分析</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <List size={18} className="text-slate-600" />
-                  <span className="font-black text-slate-700">早盤 15 分鐘判定</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-md">
-                  <Clock size={12} />
-                  <span>第一根: 09:05 | 第二根: 09:10 | 第三根: 09:15</span>
-                </div>
-              </div>
-              <div className="p-4 space-y-6">
-                {patterns.map((section, idx) => (
-                  <div key={idx} className={`rounded-xl border ${section.border} ${section.color} p-4`}>
-                    <h3 className="text-xs font-black text-slate-400 uppercase mb-3 tracking-wider">{section.title}</h3>
-                    <div className="space-y-3">
-                      {section.items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between group">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-black text-lg text-slate-800 w-16">{item.code}</span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.label.includes('不宜') ? 'bg-gray-200 text-gray-600' : (idx === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600')}`}>
-                                {item.label}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-slate-500 font-medium ml-1">K棒組合：{item.k}</span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 italic text-right leading-tight max-w-[80px]">{item.note}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-slate-800 rounded-2xl p-6 text-white shadow-xl border border-slate-700">
-              <h3 className="font-bold mb-3 flex items-center gap-2 text-sm text-blue-400">
-                <ShieldAlert size={18} /> 石頭少爺：風險控管提醒
-              </h3>
-              <ul className="text-[11px] space-y-3 opacity-90 leading-relaxed font-medium list-disc pl-4">
-                <li>安全進場點建議設於「中間價」，避免在趨勢不明確時追高受傷。</li>
-                <li><strong>觀察 09:15 確定前三根 K 棒型態後</strong>，若出現弱勢組合 (如 +--)，即便公式預判偏多，也應暫緩進場。</li>
-                <li>收盤與中間價差距在 0.3% 以內代表目前多空勢均力敵，建議觀望。</li>
-                <li>中長線投資者請務必參考周、月線趨勢來輔助本工具判斷。</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default App;
+            const copyBtnText = document.getElementById('copyText');
+            const copyIcon = document.getElementById('copyIcon');
+            copyBtnText.innerText = "已複製！";
+            copyIcon.className = "fa-solid fa-check-double";
+            
+            setTimeout(() => {
+                copyBtnText.innerText = "複製戰報";
+                copyIcon.className = "fa-solid fa-copy";
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
 
 ```
