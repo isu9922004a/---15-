@@ -265,9 +265,23 @@
                                     <span class="text-lg tracking-[0.2em]">🟥🟥🟩</span>
                                     <span class="text-[10px] font-bold text-red-600">偏強</span>
                                 </div>
-                                <div class="flex justify-between items-center group p-2">
-                                    <span class="text-lg tracking-[0.2em]">🟩🟩🟥</span>
-                                    <span class="text-[10px] font-bold text-amber-600">波段多 / 當沖走</span>
+                                <div class="flex flex-col group p-2">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-lg tracking-[0.2em]">🟩🟩🟥</span>
+                                        <div class="text-right flex flex-col items-end gap-1">
+                                            <span class="text-[10px] font-bold text-amber-600">低檔可能出現反彈</span>
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700">（偏多）放空SOP</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-[10px] text-slate-600 bg-white p-2.5 rounded-lg border border-amber-100/50 leading-relaxed shadow-sm">
+                                        <span class="font-black text-amber-700 block mb-1"><i class="fa-solid fa-arrow-right-arrow-left"></i> 高拋低吸（當沖偏空）</span>
+                                        <span class="block mb-1">→ 先賣再買（看跌）</span>
+                                        <span class="font-black text-red-500 block mt-2 mb-1"><i class="fa-solid fa-triangle-exclamation"></i> 如果判斷錯誤：</span>
+                                        👉 你在50賣出後<br>
+                                        👉 股價漲到52<br>
+                                        你就要用更高價格（52）買回<br>
+                                        <span class="font-bold text-red-600">→ 變成倒賠（被軋空）</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -277,20 +291,24 @@
                             <h3 class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">弱勢 / 觀望型態</h3>
                             <div class="space-y-2">
                                 <div class="flex justify-between items-center group p-2 border-b border-slate-200">
-                                    <span class="text-lg tracking-[0.2em]">🟥🟩🟩</span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">空</span>
-                                </div>
-                                <div class="flex justify-between items-center group p-2 border-b border-slate-200">
                                     <span class="text-lg tracking-[0.2em]">🟩🟩🟩</span>
                                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">空</span>
                                 </div>
-                                <div class="flex justify-between items-center group opacity-80 p-2 border-b border-slate-200">
-                                    <span class="text-lg tracking-[0.2em]">🟥🟩🟥</span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">不宜進場</span>
+                                <div class="flex justify-between items-center group p-2 border-b border-slate-200">
+                                    <span class="text-lg tracking-[0.2em]">🟥🟩🟩</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">空</span>
                                 </div>
-                                <div class="flex justify-between items-center group opacity-80 p-2">
-                                    <span class="text-lg tracking-[0.2em]">🟩🟥🟥</span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">不宜進場</span>
+                                <div class="flex justify-between items-center group opacity-90 p-2 border-b border-slate-200">
+                                    <span class="text-lg tracking-[0.2em]">🟥🟩🟥</span>
+                                    <div class="text-[10px] font-bold px-2 py-1 rounded bg-slate-200 text-slate-600 text-right leading-tight">
+                                        不宜進場（盤整）<br>當沖可能賣不掉
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center group opacity-90 p-2">
+                                    <span class="text-lg tracking-[0.2em]">🟩🟥🟩</span>
+                                    <div class="text-[10px] font-bold px-2 py-1 rounded bg-slate-200 text-slate-600 text-right leading-tight">
+                                        不宜進場（盤整）<br>當沖可能賣不掉
+                                    </div>
                                 </div>
                             </div>
                         </div>
